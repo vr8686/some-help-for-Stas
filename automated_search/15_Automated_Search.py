@@ -1,38 +1,117 @@
-from selenium import webdriver
-from automated_search.base import Base
-from automated_search.filter import Filter
+from components.base import Base
+from components.filter import LeftFilterPane
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# Initialize the WebDriver (e.g., Chrome)
-driver = webdriver.Chrome()
+class EbayWatchAutomation(Base):
+    def __init__(self, url):
+        super().__init__(url)
+        self.left_filter_pane = LeftFilterPane(self.driver)
+        self.mismatches = []
 
-# Open the eBay watch page
-url = "https://www.ebay.com/sch/i.html?_from=R40&_trksid=p4432023.m570.l1313&_nkw=watch&_sacat=0"
-driver.get(url)
+    def apply_filters(self):
+        filters_to_apply = ["Brand"]
 
-# Create instances of the Base and Filter classes
-base = Base(driver)
-filter = Filter(driver)
+        for filter_name in filters_to_apply:
+            self.left_filter_pane.apply_filter(filter_name)
 
-# Task 1: Select "Rolex" option in Filter Pane
-filter.select_option("Brand / Rolex")
+        # Check Rolex option
+        self.left_filter_pane.select_rolex()
 
-# Task 2: Verify the first two results contain "rolex" in their title
-# You can use the find_elements() method to get a list of results and verify the titles.
+    def verify_titles_contain_rolex(self):
+        # Wait for the search results to load
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]'))
+        )
 
-# Task 3: Store title and price of the first two results in a variable
-# You can use find_elements() and extract the data from the elements.
+        # Get the titles of the first two items
+        titles = self.driver.find_elements(By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]')[:2]
 
-# Task 4: Open the first item and verify the title and the price by comparing them with the stored data
+        # Verify that each title contains "rolex"
+        for title in titles:
+            if "rolex" not in title.text.lower():
+                self.mismatches.append(f"Title '{title.text}' does not contain 'rolex'")
 
-# Task 5: Uncheck “Rolex“ option
-filter.unselect_option("Brand / Rolex")
+    def store_first_two_results(self):
+        # Wait for the search results to load
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]'))
+        )
 
-# Task 6: Check “Casio“ option
-filter.select_option("Brand / Casio")
+        # Get the titles and prices of the first two items
+        titles = self.driver.find_elements(By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]')[:2]
+        prices = self.driver.find_elements(By.XPATH, '//div[@class="s-item__info"]/span[@class="s-item__price"]')[:2]
 
-# Task 7: Verify the last two result items contain “Casio“ in their title
+        # Store titles and prices in variables
+        first_title = titles[0].text
+        second_title = titles[1].text
+        first_price = prices[0].text
+        second_price = prices[1].text
 
-# Task 8: Save and print ALL the mismatches if any
+        return first_title, first_price, second_title, second_price
 
-# Close the WebDriver
-driver.quit()
+    def open_and_verify_item(self, item_number, stored_title, stored_price):
+        # Open the item in a new tab
+        self.driver.execute_script(f"window.open('https://www.ebay.com/itm/{item_number}')")
+        # Switch to the newly opened tab
+        self.driver.switch_to.window(self.driver.window_handles[1])
+
+        # Wait for the item details to load
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="mainContent"]/div/div[1]/h1'))
+        )
+
+        # Get the title and price of the opened item
+        opened_title = self.driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[1]/h1').text
+        opened_price = self.driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[3]/div/div/div[1]/span').text
+
+        # Verify the title and price
+        if opened_title != stored_title:
+            self.mismatches.append(f"Opened title '{opened_title}' does not match stored title '{stored_title}'")
+        if opened_price != stored_price:
+            self.mismatches.append(f"Opened price '{opened_price}' does not match stored price '{stored_price}'")
+
+    def uncheck_rolex_option(self):
+        # Switch to the main tab
+        self.driver.switch_to.window(self.driver.window_handles[0])
+        # Uncheck Rolex option
+        self.left_filter_pane.uncheck_rolex()
+
+    def check_casio_option(self):
+        # Switch to the main tab
+        self.driver.switch_to.window(self.driver.window_handles[0])
+        # Check Casio option
+        self.left_filter_pane.check_casio()
+
+    def verify_last_two_results_contain_casio(self):
+        # Wait for the search results to load
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]'))
+        )
+
+        # Get the titles of the last two items
+        titles = self.driver.find_elements(By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]')[-2:]
+
+        # Verify that each title contains "casio"
+        for title in titles:
+            if "casio" not in title.text.lower():
+                self.mismatches.append(f"Title '{title.text}' does not contain 'casio'")
+
+    def print_mismatches(self):
+        for mismatch in self.mismatches:
+            print(mismatch)
+
+if __name__ == "__main__":
+    ebay_automation = EbayWatchAutomation(
+        "https://www.ebay.com/sch/i.html?_from=R40&_trksid=p4432023.m570.l1313&_nkw=watch&_sacat=0")
+
+    try:
+        ebay_automation.navigate()
+        ebay_automation.uncheck_rolex_option()
+        ebay_automation.check_casio_option()
+        ebay_automation.verify_last_two_results_contain_casio()
+        ebay_automation.print_mismatches()
+
+    finally:
+        ebay_automation.close()
