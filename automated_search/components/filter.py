@@ -21,12 +21,12 @@ class LeftFilterPane:
         rolex_checkbox.click()
 
     def uncheck_rolex(self):
-        rolex_xpath = '//*[@id="x-refine__group_1__2"]/ul/li[1]/div/a/div/span/input'
+        rolex_xpath = '//span[@class="cbx x-refine__multi-select-cbx" and contains(text(), "Rolex")]'
         rolex_checkbox = WebDriverWait(self.driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, rolex_xpath))
         )
-        if rolex_checkbox.is_selected():
-            rolex_checkbox.click()
+        # if rolex_checkbox.is_selected():
+        rolex_checkbox.click()
 
     def check_casio(self):
         casio_xpath = '//*[@id="x-refine__group_1__0"]/ul/li[4]/div/a/div/span'
