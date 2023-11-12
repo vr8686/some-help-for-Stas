@@ -24,7 +24,7 @@ if __name__ == "__main__":
 - Added ebay_automation.store_first_two_results()  # this function was never called
 […]
 
-3. Changes in 15_Automated_Search.py
+5. Changes in 15_Automated_Search.py
 def store_first_two_results(self):
 - Removed WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@class="s-item__info"]/h3[@class="s-item__title"]')))  # the script stops here because of wrong XPath
 - Fixed “titles” list. Modified XPaths 
